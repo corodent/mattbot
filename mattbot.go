@@ -12,8 +12,13 @@ import (
 const SenderTypeBot = "bot"
 const SenderTypeUser = "user"
 
+type GroupMeAttachment struct {
+     Type         string
+     Url          string
+}
+
 type GroupMeBotPost struct {
-     Attachments  []string
+     Attachments  []GroupMeAttachment
      Avatar_url   string
      Created_at   int
      Group_id     string
@@ -37,19 +42,24 @@ func handleGet( w http.ResponseWriter, req *http.Request ) {
      w.Write([]byte(responseString))
 }
 
+// picture of jack in the image server
+// {"payload":{"url":"https://i.groupme.com/450x450.jpeg.cd107edf1c27497d8a45a239a4746154","picture_url":"https://i.groupme.com/450x450.jpeg.cd107edf1c27497d8a45a239a4746154"}}
+
+const PICTURE_URL = "https://i.groupme.com/450x450.jpeg.cd107edf1c27497d8a45a239a4746154"
+
 func postMessage( w http.ResponseWriter, post *GroupMeBotPost ) {
-     body := fmt.Sprintf( `{"bot_id":"%s","text":"%s"}`, BOT_ID, "Hello from MattBot" )
+//     body := fmt.Sprintf( `{"bot_id":"%s","text":"%s"}`, BOT_ID, "Hello from MattBot" )
+     body := fmt.Sprintf( `{"bot_id":"%s","text":"%s","attachments":[{"type":"image","url":"%s"}]}`, BOT_ID, "Jack", PICTURE_URL )
 
      resp, err := http.Post( "https://api.groupme.com/v3/bots/post", "application/json", bytes.NewBufferString(body) )
      if err !=nil {
      	log.Fatal(err)
      }
-     responseText, err := ioutil.ReadAll(resp.Body)
+     _, err = ioutil.ReadAll(resp.Body)
      resp.Body.Close()
      if err !=nil {
      	log.Fatal(err)
      }
-     fmt.Printf( "%s\n", responseText )
 }
 
 func handlePost( w http.ResponseWriter, req *http.Request ) {
@@ -63,9 +73,11 @@ func handlePost( w http.ResponseWriter, req *http.Request ) {
      }
 
      var m GroupMeBotPost
+//     var m interface{}
      e := json.Unmarshal( b, &m )
      if e!=nil {
      	fmt.Printf( "error: Unable to parse body JSON: %s\n", e );
+	fmt.Printf( "%s\n", b )
         http.Error( w, "Unable to parse request", 500 )
 	return
      }
@@ -76,6 +88,11 @@ func handlePost( w http.ResponseWriter, req *http.Request ) {
 }
 
 func handler(w http.ResponseWriter, req *http.Request) {
+     if req.RequestURI=="/img/jack.jpg" {
+     	http.ServeFile( w, req, "img/jack.jpg" )
+	return
+     }
+     
      if req.Method == http.MethodGet {
      	handleGet( w, req );
      } else if req.Method == http.MethodPost {
